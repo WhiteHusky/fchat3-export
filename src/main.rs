@@ -312,7 +312,15 @@ fn check_and_add_files(vec_to_save_to: &mut Vec<PathBuf>, path: PathBuf, can_rea
     }
     return Ok(false);
 }
-
+/* NOTE FOR FUTURE IDX PARSING:
+    [
+        name_len:u8,
+        name_utf8:utf8_string * name_len,
+        days_from_unix_epoch:u16, -- AKA unix_epoch/unix_epoch_seconds_in_day = day_epoch_midnight
+        day_offset:u24, -- Offset in associated file
+        ...
+    ]
+*/
 fn fchat_deserialize_message<B: Read + Seek + ReadBytesExt>(buffer: &mut B, ignore_check: bool, reverse: bool) -> std::io::Result<FchatMessage> {
     let mut check_digit:u16 = 0;
     if reverse {
