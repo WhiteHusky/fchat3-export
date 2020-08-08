@@ -1,14 +1,12 @@
 extern crate fchat3_log_lib;
 #[macro_use(load_yaml)]
 extern crate clap;
-use std::str::FromStr;
 use clap::App;
 use fchat3_log_lib::{FChatMessageReader, structs::ParseError};
 use fchat3_log_lib::structs::{FChatMessageType};
 use std::fs;
 use std::path::{PathBuf};
 use std::io::BufReader;
-use std::fs::File;
 
 fn collect_files(collection: &mut Vec<PathBuf>, path: PathBuf, can_recurse: bool) {
     if !path.exists() {
