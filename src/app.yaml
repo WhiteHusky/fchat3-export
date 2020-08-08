@@ -1,0 +1,20 @@
+name: fchat3-export
+version: "1.0"
+about: Reads F-Chat 3.0 client logs to stdout
+author: Carlen White <whitersuburban@gmail.com>
+
+settings:
+  - ArgRequiredElseHelp
+
+args:
+  - files:
+      help: What file(s) to read from
+      short: f
+      long: file
+      multiple: true
+      takes_value: true
+      required: true
+  - recursive:
+      help: Recurse into directories
+      short: r
+      long: recurse
