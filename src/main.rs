@@ -44,6 +44,7 @@ fn main() {
     for file in files_to_process {
         let fd = BufReader::new(fs::File::open(file.to_owned()).unwrap());
         let reader = FChatMessageReader::new(fd);
+        eprintln!("Reading {:?}", file.to_str().unwrap());
         for result in reader {
             match result {
                 Ok(message) => {
