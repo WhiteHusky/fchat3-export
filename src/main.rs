@@ -75,5 +75,5 @@ fn main() {
             }
         }
     }
-    println!("Hello World")
+    eprintln!("Finished.")
 }
