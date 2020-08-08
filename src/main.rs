@@ -54,9 +54,9 @@ fn main() {
                     print!("[{}] [{}] ", file.file_name().unwrap().to_str().unwrap(), datetime);
                     match body {
                         FChatMessageType::Message(string) => { println!("{}: {}", sender, string) }
-                        FChatMessageType::Action(string) => { println!("{} {}", sender, string) }
+                        FChatMessageType::Action(string) => { println!("{}{}", sender, string) }
                         FChatMessageType::Ad(string) => { println!("[AD] {}: {}", sender, string) }
-                        FChatMessageType::Roll(string) => { println!("{} {}", sender, string) }
+                        FChatMessageType::Roll(string) => { println!("[ROLL] {} {}", sender, string) }
                         FChatMessageType::Warn(string) => { println!("[!WARN!] {}: {}", sender, string) }
                         FChatMessageType::Event(string) => { println!("[!EVENT!] {}: {}", sender, string) }
                     }
