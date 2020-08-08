@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Carlen White <WhiterSuburban@gmail.com>"]
 
 [dependencies]
-fchat3-log-lib = {path = "../fchat3-log-lib"}
+fchat3-log-lib = {git = "https://github.com/WhiteHusky/fchat3-log-lib"}
 
 [dependencies.clap]
 version = "2.33"
