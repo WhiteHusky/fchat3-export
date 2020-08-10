@@ -1,14 +1,18 @@
 extern crate fchat3_log_lib;
 #[macro_use(load_yaml)]
 extern crate clap;
+extern crate handlebars;
+#[macro_use(Serialize)]
+extern crate serde;
 use clap::App;
 use fchat3_log_lib::{FChatMessageReader, FChatMessageReaderReversed, structs::ParseError};
-use fchat3_log_lib::structs::{FChatMessageType};
+use fchat3_log_lib::structs::{FChatMessageType, ReaderResult};
 use std::fs;
 use std::path::{PathBuf};
 use std::io::BufReader;
 mod consumers;
 use consumers::FChatLogConsumer;
+use consumers::LogConsumer;
 
 fn collect_files(collection: &mut Vec<PathBuf>, path: PathBuf, can_recurse: bool) {
     if !path.exists() {
@@ -49,18 +53,30 @@ fn main() {
         let fd = BufReader::new(fs::File::open(file.to_owned()).unwrap());
         eprintln!("Reading {:?}", file.to_str().unwrap());
         let log_name = file.file_name().unwrap().to_str().unwrap();
+        let consumer: Option<Box<dyn FChatLogConsumer>>;
+        if matches.is_present("html") {
+            let mut html_consumer = consumers::HTMLConsumer::new(log_name, None);
+            html_consumer.configure(None);
+            consumer = Some(Box::new(html_consumer));
+        } else {
+            consumer = Some(Box::new(consumers::StdoutConsumer{}));
+        }
+        if consumer.is_none() {
+            panic!("consumer is empty and it should not be.\nThis is a bug.")
+        }
+        let consumer = consumer.unwrap();
         if reverse_read {
-            let reader = FChatMessageReaderReversed::new(fd);
-            for result in reader {
-                match consumers::StdoutConsumer::consume(result, log_name, None) {
+            let mut reader = FChatMessageReaderReversed::new(fd);
+            loop {
+                match consumer.consume(reader.next(), log_name, None) {
                     true => {continue},
                     false => {break}
                 }
             }
         } else {
-            let reader = FChatMessageReader::new(fd);
-            for result in reader {
-                match consumers::StdoutConsumer::consume(result, log_name, None) {
+            let mut reader = FChatMessageReader::new(fd);
+            loop {
+                match consumer.consume(reader.next(), log_name, None) {
                     true => {continue},
                     false => {break}
                 }

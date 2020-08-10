@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <title>{{character_name}} - {{ log_name }}</title>
+        <style>
+            .datetime:after {
+                content: "] "
+            }
+
+            .datetime:before {
+                content: "["
+            }
+
+            .sender {
+                font-weight: bold
+            }
+
+            .action {
+                font-style: italic;
+            }
+
+            .message:before {
+                content: ": "
+            }
+        </style>
+    </head>
+    <div class="log">
+    {{#each entries}}
+        <div class="entry"><span class="datetime">{{this.datetime}}</span><span class="sender">{{this.sender_name}}</span><span class="body {{this.message_body_class_hints}}">{{this.message_body}}</span></div>
+    {{/each}}
+    </div>
+</html>

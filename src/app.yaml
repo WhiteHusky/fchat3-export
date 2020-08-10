@@ -22,3 +22,6 @@ args:
       help: Reads files in reverse
       short: z
       long: reverse
+  - html:
+      help: generate HTML document of inputted logs
+      long: html
