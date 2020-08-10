@@ -18,3 +18,7 @@ args:
       help: Recurse into directories
       short: r
       long: recurse
+  - reverse:
+      help: Reads files in reverse
+      short: z
+      long: reverse
