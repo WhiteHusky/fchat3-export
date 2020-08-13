@@ -72,13 +72,29 @@ fn main() {
         None => {}
     }
     for file in files_to_process {
+        let mut character_name = "Unknown";
+        match file.parent() {
+            Some(path) => {
+                let file_name = path.file_name().unwrap().to_str().unwrap();
+                if file_name == "logs" {
+                    match path.parent() {
+                        Some(path) => {
+                            character_name = path.file_name().unwrap().to_str().unwrap();
+                        },
+                        None => {}
+                    }
+                }
+            },
+            None => {}
+        }
+
         let fd = BufReader::new(fs::File::open(file.to_owned()).unwrap());
         eprintln!("Reading {:?}", file.to_str().unwrap());
         let log_name = file.file_name().unwrap().to_str().unwrap();
         if reverse_read {
             let mut reader = FChatMessageReaderReversed::new(fd);
             loop {
-                match consumer.consume(reader.next(), log_name, None) {
+                match consumer.consume(reader.next(), log_name, Some(character_name)) {
                     true => {continue},
                     false => {break}
                 }
@@ -86,7 +102,7 @@ fn main() {
         } else {
             let mut reader = FChatMessageReader::new(fd);
             loop {
-                match consumer.consume(reader.next(), log_name, None) {
+                match consumer.consume(reader.next(), log_name, Some(character_name)) {
                     true => {continue},
                     false => {break}
                 }
