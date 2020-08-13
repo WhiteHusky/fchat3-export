@@ -5,6 +5,7 @@ extern crate handlebars;
 #[macro_use(Serialize)]
 extern crate serde;
 extern crate chrono;
+extern crate regex;
 use clap::App;
 use fchat3_log_lib::{FChatMessageReader, FChatMessageReaderReversed};
 use std::fs;

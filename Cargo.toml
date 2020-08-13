@@ -7,6 +7,7 @@ authors = ["Carlen White <WhiterSuburban@gmail.com>"]
 fchat3-log-lib = {git = "https://github.com/WhiteHusky/fchat3-log-lib"}
 handlebars = "3.3"
 chrono = "0.4"
+regex = "1.3"
 
 [dependencies.serde]
 version = "1.0"

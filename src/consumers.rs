@@ -1,9 +1,10 @@
-use handlebars::Handlebars;
+use handlebars::{Handlebars, HelperDef, RenderContext, Helper, Context, HelperResult, Output};
 use fchat3_log_lib::structs::{FChatMessageType, ParseError, ReaderResult, FChatMessage};
 use std::cell::RefCell;
 use chrono::NaiveDate;
 use chrono::Datelike;
 use std::path::{PathBuf};
+use regex::Regex;
 
 pub trait LogConsumer {
     fn new() -> Self;
@@ -57,6 +58,27 @@ impl FChatLogConsumer for StdoutConsumer {
     }
 }
 
+#[derive(Clone, Copy)]
+struct BreaklinesHandlebars {}
+
+impl HelperDef for BreaklinesHandlebars {
+    fn call<'reg: 'rc, 'rc>(
+            &self,
+            h: &Helper<'reg, 'rc>,
+            r: &'reg Handlebars<'reg>,
+            ctx: &'rc Context,
+            rc: &mut RenderContext<'reg, 'rc>,
+            out: &mut dyn Output,
+        ) -> HelperResult {
+            let string = h.param(0).unwrap().value().as_str().unwrap();
+            let string = handlebars::html_escape(string);
+            let string = Regex::new(r"(\r\n|\n|\r)").unwrap().replace_all(string.as_str(), "</br>").to_string();
+            out.write(string.as_str())?;
+            Ok(())
+    }
+}
+
+
 // RefCell is NOT thread safe! https://doc.rust-lang.org/std/cell/index.html
 #[derive(Serialize, Debug)]
 struct HTMLConsumerLog<'log> {
@@ -85,6 +107,7 @@ pub struct HTMLConsumer<'html_consumer> {
 impl HTMLConsumer<'_> {
     pub fn configure(&mut self, template: Option<&str>, save_location: PathBuf) -> Result<(), ()> {
         self.handlebars_engine.register_template_string("log", template.unwrap_or(include_str!("./templates/html/log.hbs"))).unwrap();
+        self.handlebars_engine.register_helper("breakline", Box::new(BreaklinesHandlebars {}));
         if !save_location.exists() {
             eprint!("{:?} does not exist!", save_location);
             return Err(());
