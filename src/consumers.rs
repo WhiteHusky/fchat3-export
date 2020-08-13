@@ -84,7 +84,7 @@ impl HelperDef for BreaklinesHandlebars {
 struct HTMLConsumerLog<'log> {
     character_name: String,
     log_name: String,
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     date_check: Option<NaiveDate>,
     date: String,
     entries: RefCell<Vec<HTMLConsumerLogEntry<'log>>>
