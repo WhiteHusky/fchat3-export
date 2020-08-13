@@ -4,9 +4,9 @@ extern crate clap;
 extern crate handlebars;
 #[macro_use(Serialize)]
 extern crate serde;
+extern crate chrono;
 use clap::App;
-use fchat3_log_lib::{FChatMessageReader, FChatMessageReaderReversed, structs::ParseError};
-use fchat3_log_lib::structs::{FChatMessageType, ReaderResult};
+use fchat3_log_lib::{FChatMessageReader, FChatMessageReaderReversed};
 use std::fs;
 use std::path::{PathBuf};
 use std::io::BufReader;
@@ -36,11 +36,33 @@ fn collect_files(collection: &mut Vec<PathBuf>, path: PathBuf, can_recurse: bool
 
 fn main() {
     let yml = load_yaml!("app.yaml");
-    let app = App::from_yaml(yml);
-    let matches = app.get_matches();
+    let mut app = App::from_yaml(yml);
+    let matches = app.clone().get_matches();
     let mut files_to_process = Vec::<PathBuf>::new();
     let recursive = matches.is_present("recursive");
     let reverse_read = matches.is_present("reverse");
+
+    let consumer: Option<Box<dyn FChatLogConsumer>>;
+    if matches.is_present("html") {
+        if !matches.is_present("output") {
+            eprintln!("HTML output requires a place to output.");
+            app.print_help().unwrap();
+            return
+        }
+        let output = matches.value_of("output").unwrap();
+        let mut html_consumer = consumers::HTMLConsumer::new();
+        if html_consumer.configure(None, PathBuf::from(output)).is_err() {
+            return
+        }
+        consumer = Some(Box::new(html_consumer));
+    } else {
+        consumer = Some(Box::new(consumers::StdoutConsumer::new()));
+    }
+    if consumer.is_none() {
+        panic!("consumer is empty and it should not be.\nThis is a bug.")
+    }
+    let consumer = consumer.unwrap();
+
     match matches.values_of("files") {
         Some(files) => {
             for file in files {
@@ -53,18 +75,6 @@ fn main() {
         let fd = BufReader::new(fs::File::open(file.to_owned()).unwrap());
         eprintln!("Reading {:?}", file.to_str().unwrap());
         let log_name = file.file_name().unwrap().to_str().unwrap();
-        let consumer: Option<Box<dyn FChatLogConsumer>>;
-        if matches.is_present("html") {
-            let mut html_consumer = consumers::HTMLConsumer::new(log_name, None);
-            html_consumer.configure(None);
-            consumer = Some(Box::new(html_consumer));
-        } else {
-            consumer = Some(Box::new(consumers::StdoutConsumer{}));
-        }
-        if consumer.is_none() {
-            panic!("consumer is empty and it should not be.\nThis is a bug.")
-        }
-        let consumer = consumer.unwrap();
         if reverse_read {
             let mut reader = FChatMessageReaderReversed::new(fd);
             loop {

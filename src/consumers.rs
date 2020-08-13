@@ -1,9 +1,12 @@
 use handlebars::Handlebars;
 use fchat3_log_lib::structs::{FChatMessageType, ParseError, ReaderResult, FChatMessage};
 use std::cell::RefCell;
+use chrono::NaiveDate;
+use chrono::Datelike;
+use std::path::{PathBuf};
 
 pub trait LogConsumer {
-    fn new(log_name: &str, character_name: Option<&str>) -> Self;
+    fn new() -> Self;
 }
 
 pub trait FChatLogConsumer {
@@ -24,7 +27,7 @@ fn get_message(result: Option<ReaderResult>) -> Option<FChatMessage> {
 pub struct StdoutConsumer {}
 
 impl LogConsumer for StdoutConsumer {
-    fn new(log_name: &str, character_name: Option<&str>) -> Self {
+    fn new() -> Self {
         Self {}
     }
 }
@@ -59,6 +62,9 @@ impl FChatLogConsumer for StdoutConsumer {
 struct HTMLConsumerLog<'log> {
     character_name: String,
     log_name: String,
+    #[serde(skip_serializing)]
+    date_check: Option<NaiveDate>,
+    date: String,
     entries: RefCell<Vec<HTMLConsumerLogEntry<'log>>>
 }
 
@@ -70,31 +76,44 @@ struct HTMLConsumerLogEntry<'entry> {
     message_body: String
 }
 pub struct HTMLConsumer<'html_consumer> {
-    log: HTMLConsumerLog<'html_consumer>,
+    logs: RefCell<Vec<HTMLConsumerLog<'html_consumer>>>,
     configured: bool,
+    save_location: Option<PathBuf>,
     handlebars_engine: Box<Handlebars<'html_consumer>>
 }
 
 impl HTMLConsumer<'_> {
-    pub fn configure(&mut self, template: Option<&str>) {
+    pub fn configure(&mut self, template: Option<&str>, save_location: PathBuf) -> Result<(), ()> {
         self.handlebars_engine.register_template_string("log", template.unwrap_or(include_str!("./templates/html/log.hbs"))).unwrap();
+        if !save_location.exists() {
+            eprint!("{:?} does not exist!", save_location);
+            return Err(());
+        } else if !save_location.is_dir() {
+            eprint!("{:?} is not a directory!", save_location);
+            return Err(());
+        }
+        self.save_location = Some(save_location);
         self.configured = true;
+        Ok(())
+    }
+    fn write_log(&self, log: &mut HTMLConsumerLog) {
+        let save_location = self.save_location.as_ref().unwrap();
+        let save_location = save_location.join(format!("{}/{}/{}.html", log.character_name, log.log_name, log.date));
+        std::fs::create_dir_all(save_location.parent().unwrap()).unwrap();
+        let mut file_options = std::fs::OpenOptions::new();
+        let file = file_options.create(true).write(true).open(save_location).unwrap();
+        self.handlebars_engine.render_to_write("log", &log, file).unwrap(); //std::io::stdout()
     }
 }
 
 impl LogConsumer for HTMLConsumer<'_> {
-    fn new(log_name: &str, character_name: Option<&str>) -> Self {
-        let mut engine = Handlebars::new();
-        let refed_character_name = character_name.unwrap_or("Unknown").to_owned();
-        let refed_log_name = log_name.to_owned();
+    fn new() -> Self {
+        let engine = Handlebars::new();
         Self {
             configured: false,
             handlebars_engine: Box::new(engine),
-            log: HTMLConsumerLog{
-                character_name: refed_character_name,
-                log_name: refed_log_name,
-                entries: RefCell::new(Vec::new()),
-            },
+            logs: RefCell::new(Vec::new()),
+            save_location: None
         }
     }
 }
@@ -105,12 +124,54 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
             panic!("HTMLConsumer needs to be configured first!")
         }
         let message_retrieved = get_message(result);
+        let character_name = character_name.unwrap_or("Unknown");
+        let mut logs = self.logs.borrow_mut();
+        let mut log: Option<&mut HTMLConsumerLog> = None;
+        let mut log_index: Option<usize> = None;
+        let mut log_found =  false;
+        for (index, log_at) in logs.iter_mut().enumerate() {
+            if log_at.character_name == character_name && log_at.log_name == log_name {
+                log = Some(log_at);
+                log_index = Some(index);
+                log_found = true;
+                break;
+            }
+        }
+        if !log_found {
+            logs.push(HTMLConsumerLog {
+                character_name: character_name.to_owned(),
+                log_name: log_name.to_owned(),
+                entries: RefCell::new(Vec::new()),
+                date_check: None,
+                date: String::new()
+            });
+            log_index = Some(logs.len() - 1);
+            log = Some(logs.last_mut().unwrap());
+        }
+        let log = log.unwrap();
+        let log_index = log_index.unwrap();
         match message_retrieved {
             Some(message) => {
+                if !log_found {
+                    log.date.push_str(&NaiveDate::from_ymd(message.datetime.year(), message.datetime.month(), message.datetime.day()).to_string());
+                    log.date_check = Some(message.datetime.date());
+                }
+                let m_datetime = &message.datetime;
+                let l_datetime = &log.date_check.unwrap();
+                
+                // If the date is different, render now and drain the entries.
+                if m_datetime.year() != l_datetime.year() || m_datetime.month() != l_datetime.month() || m_datetime.day() != l_datetime.day() {
+                    eprintln!("Writing {} {}", log.log_name, log.date);
+                    self.write_log(log);
+                    log.entries = RefCell::new(Vec::new());
+                    log.date = NaiveDate::from_ymd(message.datetime.year(), message.datetime.month(), message.datetime.day()).to_string();
+                    log.date_check = Some(message.datetime.date());
+                }
+
                 let sender_name = message.sender;
                 let datetime = message.datetime.to_string();
-                let mut message_body_class_hints: &str;
-                let mut message_body: String;
+                let message_body_class_hints: &str;
+                let message_body: String;
 
                 match message.body {
                     FChatMessageType::Message(string) => {
@@ -139,7 +200,7 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
                     }
                 }
 
-                self.log.entries.borrow_mut().push(HTMLConsumerLogEntry {
+                log.entries.borrow_mut().push(HTMLConsumerLogEntry {
                     sender_name,
                     datetime,
                     message_body,
@@ -147,7 +208,11 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
                 });
             }
             None => {
-                self.handlebars_engine.render_to_write("log", &self.log, std::io::stdout()).unwrap();
+                if log.entries.borrow().len() > 0 {
+                    eprintln!("Writing {} {}", log.log_name, log.date);
+                    self.write_log(log);
+                }
+                logs.remove(log_index);
                 return false;
             }
         }

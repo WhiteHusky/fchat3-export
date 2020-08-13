@@ -25,3 +25,8 @@ args:
   - html:
       help: generate HTML document of inputted logs
       long: html
+  - output:
+      help: output for certain tasks
+      long: output
+      short: o
+      takes_value: true
