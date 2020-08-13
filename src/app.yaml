@@ -23,7 +23,7 @@ args:
       short: z
       long: reverse
   - html:
-      help: generate HTML document of inputted logs
+      help: generate HTML documents of inputted logs
       long: html
   - output:
       help: output for certain tasks
