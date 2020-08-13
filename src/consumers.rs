@@ -161,7 +161,7 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
                 
                 // If the date is different, render now and drain the entries.
                 if m_datetime.year() != l_datetime.year() || m_datetime.month() != l_datetime.month() || m_datetime.day() != l_datetime.day() {
-                    eprintln!("Writing {} {}", log.log_name, log.date);
+                    eprintln!("Writing {} {} {}", log.character_name, log.log_name, log.date);
                     self.write_log(log);
                     log.entries = RefCell::new(Vec::new());
                     log.date = NaiveDate::from_ymd(message.datetime.year(), message.datetime.month(), message.datetime.day()).to_string();
@@ -209,7 +209,7 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
             }
             None => {
                 if log.entries.borrow().len() > 0 {
-                    eprintln!("Writing {} {}", log.log_name, log.date);
+                    eprintln!("Writing {} {} {}", log.character_name, log.log_name, log.date);
                     self.write_log(log);
                 }
                 logs.remove(log_index);
