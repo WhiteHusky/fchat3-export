@@ -1,6 +1,6 @@
 name: fchat3-export
 version: "1.0"
-about: Reads F-Chat 3.0 client logs to stdout
+about: Reads F-Chat 3.0 client logs to stdout or HTML
 author: Carlen White <whitersuburban@gmail.com>
 
 settings:
