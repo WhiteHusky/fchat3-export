@@ -66,9 +66,9 @@ impl HelperDef for BreaklinesHandlebars {
     fn call<'reg: 'rc, 'rc>(
             &self,
             h: &Helper<'reg, 'rc>,
-            r: &'reg Handlebars<'reg>,
-            ctx: &'rc Context,
-            rc: &mut RenderContext<'reg, 'rc>,
+            _r: &'reg Handlebars<'reg>,
+            _ctx: &'rc Context,
+            _rc: &mut RenderContext<'reg, 'rc>,
             out: &mut dyn Output,
         ) -> HelperResult {
             let string = h.param(0).unwrap().value().as_str().unwrap();
