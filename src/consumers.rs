@@ -1,5 +1,6 @@
 use handlebars::{Handlebars, HelperDef, RenderContext, Helper, Context, HelperResult, Output};
-use fchat3_log_lib::structs::{FChatMessageType, ParseError, ReaderResult, FChatMessage};
+use fchat3_log_lib::fchat_message::{FChatMessage, FChatMessageType, FChatMessageReaderResult};
+use fchat3_log_lib::error::Error;
 use std::cell::RefCell;
 use chrono::NaiveDate;
 use chrono::Datelike;
@@ -11,15 +12,15 @@ pub trait LogConsumer {
 }
 
 pub trait FChatLogConsumer {
-    fn consume(&self, result: Option<ReaderResult>, log_name: &str, character_name: Option<&str>) -> bool;
+    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool;
 }
 
 // TODO: Probably should be replaced with something less...egregious.
-fn get_message(result: Option<ReaderResult>) -> Option<FChatMessage> {
+fn get_message(result: Option<FChatMessageReaderResult>) -> Option<FChatMessage> {
     // Thanks to @12Boti#0628 for showing that this is a thing
     match result {
         Some(Ok(message)) => Some(message),
-        Some(Err(ParseError::EOF(_))) => None,
+        Some(Err(Error::EOF(_))) => None,
         Some(Err(err)) => { eprintln!("{:?}", err); None},
         None => None
     }
@@ -34,7 +35,7 @@ impl LogConsumer for StdoutConsumer {
 }
 
 impl FChatLogConsumer for StdoutConsumer {
-    fn consume(&self, result: Option<ReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
+    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
         let message_retrieved = get_message(result);
         match message_retrieved {
             Some(message) => {
@@ -142,7 +143,7 @@ impl LogConsumer for HTMLConsumer<'_> {
 }
 
 impl FChatLogConsumer for HTMLConsumer<'_> {
-    fn consume(&self, result: Option<ReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
+    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
         if !self.configured{
             panic!("HTMLConsumer needs to be configured first!")
         }
