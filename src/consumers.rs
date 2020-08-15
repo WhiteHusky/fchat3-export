@@ -1,5 +1,5 @@
 use handlebars::{Handlebars, HelperDef, RenderContext, Helper, Context, HelperResult, Output};
-use fchat3_log_lib::fchat_message::{FChatMessage, FChatMessageType, FChatMessageReaderResult};
+use fchat3_log_lib::fchat_message::{FChatMessageType, FChatMessageReaderResult};
 use crate::error::Error;
 use std::cell::RefCell;
 use chrono::NaiveDate;
@@ -178,7 +178,7 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
                 // If the date is different, render now and drain the entries.
                 if m_datetime.year() != l_datetime.year() || m_datetime.month() != l_datetime.month() || m_datetime.day() != l_datetime.day() {
                     eprintln!("Writing {} {} {}", log.character_name, log.log_name, log.date);
-                    self.write_log(log);
+                    self.write_log(log)?;
                     log.entries = RefCell::new(Vec::new());
                     log.date = NaiveDate::from_ymd(message.datetime.year(), message.datetime.month(), message.datetime.day()).to_string();
                     log.date_check = Some(message.datetime.date());
@@ -226,7 +226,7 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
             None => {
                 if log.entries.borrow().len() > 0 {
                     eprintln!("Writing {} {} {}", log.character_name, log.log_name, log.date);
-                    self.write_log(log);
+                    self.write_log(log)?;
                 }
                 logs.remove(log_index);
                 return Ok(false);
