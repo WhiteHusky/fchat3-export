@@ -7,7 +7,6 @@ use chrono::Datelike;
 use std::path::{PathBuf};
 use regex::Regex;
 pub type ConsumeResult = Result<bool, Error>;
-// TODO: Use result instead of bool for consumers.
 
 pub trait LogConsumer {
     fn new() -> Self;
