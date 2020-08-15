@@ -12,6 +12,7 @@ use std::fs;
 use std::path::{PathBuf};
 use std::io::BufReader;
 mod consumers;
+mod error;
 use consumers::FChatLogConsumer;
 use consumers::LogConsumer;
 

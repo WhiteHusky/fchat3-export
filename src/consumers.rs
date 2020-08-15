@@ -1,12 +1,13 @@
 use handlebars::{Handlebars, HelperDef, RenderContext, Helper, Context, HelperResult, Output};
 use fchat3_log_lib::fchat_message::{FChatMessage, FChatMessageType, FChatMessageReaderResult};
-use fchat3_log_lib::error::Error;
+use crate::error::Error;
 use std::cell::RefCell;
 use chrono::NaiveDate;
 use chrono::Datelike;
 use std::path::{PathBuf};
 use regex::Regex;
 pub type ConsumeResult = Result<bool, Error>;
+pub type WriteResult = Result<(), Error>;
 
 pub trait LogConsumer {
     fn new() -> Self;
@@ -14,16 +15,6 @@ pub trait LogConsumer {
 
 pub trait FChatLogConsumer {
     fn consume(&self, next: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> ConsumeResult;
-}
-
-// TODO: Probably should be replaced with something less...egregious.
-fn get_message(result: Option<FChatMessageReaderResult>) -> Option<FChatMessage> {
-    // Thanks to @12Boti#0628 for showing that this is a thing
-    match result {
-        Some(Ok(message)) => Some(message),
-        Some(Err(err)) => { eprintln!("{:?}", err); None},
-        None => None
-    }
 }
 
 pub struct StdoutConsumer {}
@@ -120,13 +111,14 @@ impl HTMLConsumer<'_> {
         self.configured = true;
         Ok(())
     }
-    fn write_log(&self, log: &mut HTMLConsumerLog) {
+    fn write_log(&self, log: &mut HTMLConsumerLog) -> WriteResult {
         let save_location = self.save_location.as_ref().unwrap();
         let save_location = save_location.join(format!("{}/{}/{}.html", log.character_name, log.log_name, log.date));
         std::fs::create_dir_all(save_location.parent().unwrap()).unwrap();
         let mut file_options = std::fs::OpenOptions::new();
-        let file = file_options.create(true).write(true).open(save_location).unwrap();
-        self.handlebars_engine.render_to_write("log", &log, file).unwrap(); //std::io::stdout()
+        let file = file_options.create(true).write(true).open(save_location)?;
+        self.handlebars_engine.render_to_write("log", &log, file)?; //std::io::stdout()
+        Ok(())
     }
 }
 
