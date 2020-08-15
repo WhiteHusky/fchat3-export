@@ -96,16 +96,18 @@ fn main() {
             let mut reader = FChatMessageReaderReversed::new(fd);
             loop {
                 match consumer.consume(reader.next(), log_name, Some(character_name)) {
-                    true => {continue},
-                    false => {break}
+                    Ok(true) => { continue }
+                    Ok(false) => { break }
+                    Err(err) => { eprintln!("Problem consuming:\n{:?}", err); break}
                 }
             }
         } else {
             let mut reader = FChatMessageReader::new(fd);
             loop {
                 match consumer.consume(reader.next(), log_name, Some(character_name)) {
-                    true => {continue},
-                    false => {break}
+                    Ok(true) => { continue }
+                    Ok(false) => { break }
+                    Err(err) => { eprintln!("Problem consuming:\n{:?}", err); break}
                 }
             }
         }

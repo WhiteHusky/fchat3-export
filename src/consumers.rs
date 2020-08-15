@@ -6,13 +6,15 @@ use chrono::NaiveDate;
 use chrono::Datelike;
 use std::path::{PathBuf};
 use regex::Regex;
+pub type ConsumeResult = Result<bool, Error>;
+// TODO: Use result instead of bool for consumers.
 
 pub trait LogConsumer {
     fn new() -> Self;
 }
 
 pub trait FChatLogConsumer {
-    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool;
+    fn consume(&self, next: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> ConsumeResult;
 }
 
 // TODO: Probably should be replaced with something less...egregious.
@@ -34,10 +36,10 @@ impl LogConsumer for StdoutConsumer {
 }
 
 impl FChatLogConsumer for StdoutConsumer {
-    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
-        let message_retrieved = get_message(result);
-        match message_retrieved {
-            Some(message) => {
+    fn consume(&self, next: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> ConsumeResult {
+        match next {
+            Some(result) => {
+                let message = result?;
                 let body = message.body;
                 let datetime = message.datetime;
                 let sender = message.sender;
@@ -51,10 +53,10 @@ impl FChatLogConsumer for StdoutConsumer {
                     FChatMessageType::Warn(string) => { println!("[!WARN!] {}: {}", sender, string) }
                     FChatMessageType::Event(string) => { println!("[!EVENT!] {}: {}", sender, string) }
                 }
+                Ok(true)
             }
-            None => {return false}
+            None => {Ok(false)}
         }
-        true
     }
 }
 
@@ -142,11 +144,10 @@ impl LogConsumer for HTMLConsumer<'_> {
 }
 
 impl FChatLogConsumer for HTMLConsumer<'_> {
-    fn consume(&self, result: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> bool {
+    fn consume(&self, next: Option<FChatMessageReaderResult>, log_name: &str, character_name: Option<&str>) -> ConsumeResult {
         if !self.configured{
             panic!("HTMLConsumer needs to be configured first!")
         }
-        let message_retrieved = get_message(result);
         let character_name = character_name.unwrap_or("Unknown");
         let mut logs = self.logs.borrow_mut();
         let mut log: Option<&mut HTMLConsumerLog> = None;
@@ -173,8 +174,9 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
         }
         let log = log.unwrap();
         let log_index = log_index.unwrap();
-        match message_retrieved {
-            Some(message) => {
+        match next {
+            Some(result) => {
+                let message = result?;
                 if !log_found {
                     log.date.push_str(&NaiveDate::from_ymd(message.datetime.year(), message.datetime.month(), message.datetime.day()).to_string());
                     log.date_check = Some(message.datetime.date());
@@ -236,9 +238,9 @@ impl FChatLogConsumer for HTMLConsumer<'_> {
                     self.write_log(log);
                 }
                 logs.remove(log_index);
-                return false;
+                return Ok(false);
             }
         }
-        true
+        Ok(true)
     }
 }
