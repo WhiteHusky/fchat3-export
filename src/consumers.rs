@@ -20,7 +20,6 @@ fn get_message(result: Option<FChatMessageReaderResult>) -> Option<FChatMessage>
     // Thanks to @12Boti#0628 for showing that this is a thing
     match result {
         Some(Ok(message)) => Some(message),
-        Some(Err(Error::EOF(_))) => None,
         Some(Err(err)) => { eprintln!("{:?}", err); None},
         None => None
     }
